@@ -1,0 +1,48 @@
+#!/usr/bin/make
+CC = icc
+NVCC = nvcc
+
+OBJ = bbfmm.o \
+	options.o \
+	checks.o \
+	opts.o \
+	envs.o \
+	output.o \
+	timer.o \
+	anotherUpwardPass.o \
+	anotherDownwardPassX.o \
+	anotherFMMDistribute.o \
+	anotherInteractionList.o \
+	anotherNearField.o \
+	auxAnotherDownwardPass.o \
+	m2l_aux.o \
+	auxAnotherFMMInteraction.o \
+	anotherBuildFMMHierachy.o \
+	xdot.o atransx.o \
+	m2l_aux_cpu.o
+
+KERNEL = -DLAPLACIAN  # use -DLAPLACIAN, -DLAPLACIANFORCE, or -DONEOVERR4
+OPTS = -O3 -D${KERNEL}
+
+CFLAGS = ${OPTS}
+PLAT = _INTEL100
+LIBS = -L/opt/intel/fce/10.0.026/lib -lifcore -limf -lsvml \
+	-L/home/ttaka/lib -llapack${PLAT} -lblas${PLAT} -lm
+
+CUEXE = cuda.out
+
+CUOPTS = -O3 -D${KERNEL} -DCUDA --ptxas-options=-v
+
+CUINCLUDES = -I. -I/usr/local/NVIDIA_CUDA_SDK/common/inc
+CULIBS = -L/usr/local/cuda/lib -L/usr/local/NVIDIA_CUDA_SDK/lib -lcudart -lcutil
+
+${CUEXE}: main.o ${OBJ} elapsed.o
+	${NVCC} ${CUOPTS} -o ${CUEXE} main.o ${OBJ} elapsed.o ${CULDFLAGS} ${CULIBS} ${LIBS} ${OMP}
+main.o:
+	${NVCC} ${CUOPTS} ${CUINCLUDES} -c main.cu
+elapsed.o: elapsed.c
+	${CC} -O0 ${OPTS_ELAPSED} -o elapsed.o -c elapsed.c -DCPU_CLOCK_GHZ=${CPU_CLOCK_GHZ}
+clean : 
+	rm -f *.o
+realclean:
+	rm -f *.o ${CUEXE}
